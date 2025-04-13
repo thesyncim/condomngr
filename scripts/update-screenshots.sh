@@ -6,7 +6,7 @@ SERVER_PID=""
 TIMEOUT=10
 SERVER_PORT=8080
 SCREENSHOT_DELAY=3
-DEBUG_MODE=false # Set to false to use real screenshots with Puppeteer
+USE_SIMPLE_CAPTURE=true # Set to true to use the simple capture method instead of Puppeteer
 
 # Stop any existing server processes on port 8080
 stop_existing_servers() {
@@ -38,75 +38,74 @@ trap cleanup EXIT INT TERM
 # Ensure screenshots directory exists
 mkdir -p docs/screenshots
 
-if [ "$DEBUG_MODE" = true ]; then
-  echo "Running in DEBUG MODE - Creating placeholder screenshots"
-  
-  # Create placeholder images for each page
+# Create placeholder images (debug mode)
+create_placeholders() {
+  echo "Creating placeholder screenshots..."
   for page in "dashboard" "residents" "payments" "expenses" "reports"; do
     echo "Creating placeholder for $page"
     echo "DEBUG MODE: Screenshot of $page page - $(date)" > "docs/screenshots/$page.png"
   done
+}
+
+# Ensure we have a built binary
+echo "Building application..."
+go build -o condomngr .
+
+# Double-check port is available
+if lsof -i:${SERVER_PORT} > /dev/null 2>&1; then
+  echo "Error: Port ${SERVER_PORT} is still in use after cleanup. Please stop the process manually."
+  exit 1
+fi
+
+# Start the server in sample mode
+echo "Starting server in sample mode..."
+./condomngr -sample &
+SERVER_PID=$!
+
+# Wait for server to start
+echo "Waiting $TIMEOUT seconds for server to start..."
+for i in $(seq 1 $TIMEOUT); do
+  if curl -s http://localhost:$SERVER_PORT &>/dev/null; then
+    echo "Server is up and running"
+    break
+  fi
+  
+  # Check if process is still running
+  if ! ps -p $SERVER_PID > /dev/null; then
+    echo "Error: Server process died. Check logs for details."
+    create_placeholders
+    node scripts/update-readme.js
+    exit 1
+  fi
+  
+  if [ $i -eq $TIMEOUT ]; then
+    echo "Error: Server failed to start in $TIMEOUT seconds"
+    create_placeholders
+    node scripts/update-readme.js
+    exit 1
+  fi
+  
+  echo "Waiting... ($i/$TIMEOUT)"
+  sleep 1
+done
+
+# Give the server a bit more time to fully initialize
+echo "Waiting an additional $SCREENSHOT_DELAY seconds before capturing screenshots..."
+sleep $SCREENSHOT_DELAY
+
+# Capture screenshots
+echo "Capturing screenshots..."
+if [ "$USE_SIMPLE_CAPTURE" = true ]; then
+  # Use simple shell-based screenshot capture
+  scripts/capture-simple.sh || {
+    echo "Error: Failed to capture screenshots using simple method"
+    create_placeholders
+  }
 else
-  # Normal mode - uses Puppeteer
-  # Check if Node.js is installed
-  if ! command -v node &> /dev/null; then
-    echo "Error: Node.js is required but not installed"
-    exit 1
-  fi
-
-  # Install puppeteer if not already installed
-  if [ ! -d "node_modules/puppeteer" ]; then
-    echo "Installing puppeteer..."
-    npm install puppeteer
-  fi
-
-  # Ensure we have a built binary
-  echo "Building application..."
-  go build -o condomngr .
-
-  # Double-check port is available
-  if lsof -i:${SERVER_PORT} > /dev/null 2>&1; then
-    echo "Error: Port ${SERVER_PORT} is still in use after cleanup. Please stop the process manually."
-    exit 1
-  fi
-
-  # Start the server in sample mode
-  echo "Starting server in sample mode..."
-  ./condomngr -sample &
-  SERVER_PID=$!
-
-  # Wait for server to start
-  echo "Waiting $TIMEOUT seconds for server to start..."
-  for i in $(seq 1 $TIMEOUT); do
-    if curl -s http://localhost:$SERVER_PORT &>/dev/null; then
-      echo "Server is up and running"
-      break
-    fi
-    
-    # Check if process is still running
-    if ! ps -p $SERVER_PID > /dev/null; then
-      echo "Error: Server process died. Check logs for details."
-      exit 1
-    fi
-    
-    if [ $i -eq $TIMEOUT ]; then
-      echo "Error: Server failed to start in $TIMEOUT seconds"
-      exit 1
-    fi
-    
-    echo "Waiting... ($i/$TIMEOUT)"
-    sleep 1
-  done
-
-  # Give the server a bit more time to fully initialize
-  echo "Waiting an additional $SCREENSHOT_DELAY seconds before capturing screenshots..."
-  sleep $SCREENSHOT_DELAY
-
-  # Capture screenshots
-  echo "Capturing screenshots..."
+  # Try to use Puppeteer if requested (not recommended)
   node scripts/capture-screenshots.js || {
-    echo "Error: Failed to capture screenshots"
-    exit 1
+    echo "Error: Failed to capture screenshots using Puppeteer"
+    create_placeholders
   }
 fi
 
