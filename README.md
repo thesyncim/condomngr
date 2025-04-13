@@ -186,13 +186,49 @@ The CI workflow runs on every push to the main branch and on all pull requests. 
 
 To create a new release:
 
-1. Create and push a new tag following semantic versioning (e.g., `v1.0.0`):
+1. Use the Makefile utilities for simplified release management:
+
    ```bash
-   git tag -a v1.0.0 -m "Release v1.0.0"
-   git push origin v1.0.0
+   # View current version and available targets
+   make help
+   
+   # Create a new patch release (vX.Y.Z -> vX.Y.Z+1)
+   make release-patch
+   
+   # Create a new minor release (vX.Y.Z -> vX.Y+1.0)
+   make release-minor
+   
+   # Create a new major release (vX.Y.Z -> vX+1.0.0)
+   make release-major
+   
+   # Create a custom version
+   make release-custom TAG=v1.2.3
    ```
 
-2. The release workflow will automatically:
+2. After creating a tag, push it to trigger the release workflow:
+
+   ```bash
+   # Push a specific tag
+   make publish TAG=v1.0.0
+   
+   # Push the latest created tag
+   make publish-latest
+   ```
+
+3. Or use one-step commands to create and publish in a single operation:
+
+   ```bash
+   # Create and publish a patch release
+   make release-patch-push
+   
+   # Create and publish a minor release
+   make release-minor-push
+   
+   # Create and publish a major release 
+   make release-major-push
+   ```
+
+The release workflow will automatically:
    - Build binaries for multiple platforms:
      - Linux (amd64, arm64)
      - macOS (amd64, arm64)
