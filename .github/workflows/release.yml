@@ -1,10 +1,120 @@
-  - name: Build binary
-    env:
-      GOOS: ${{ matrix.goos }}
-      GOARCH: ${{ matrix.goarch }}
-      CGO_ENABLED: 0 # Disable CGO for static binaries
-    run: |
-      BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-      COMMIT_HASH=$(git rev-parse --short HEAD)
-      VERSION=${GITHUB_REF_NAME#v}
-      go build -v -ldflags="-X 'main.Version=${VERSION}' -X 'main.BuildTime=${BUILD_TIME}' -X 'main.CommitHash=${COMMIT_HASH}'" -o ${{ matrix.output }} . 
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags (e.g., v1.0.0)
+
+permissions:
+  contents: write # Needed for creating releases
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Run tests
+        run: go test -v ./...
+
+  build:
+    name: Build Binaries
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            output: condomngr-linux-amd64
+          - goos: linux
+            goarch: arm64
+            output: condomngr-linux-arm64
+          - goos: darwin
+            goarch: amd64
+            output: condomngr-darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            output: condomngr-darwin-arm64
+          - goos: windows
+            goarch: amd64
+            output: condomngr-windows-amd64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0 # Disable CGO for static binaries
+        run: |
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          VERSION=${GITHUB_REF_NAME#v}
+          go build -v -ldflags="-X 'main.Version=${VERSION}' -X 'main.BuildTime=${BUILD_TIME}' -X 'main.CommitHash=${COMMIT_HASH}'" -o ${{ matrix.output }} .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.output }}
+          path: ${{ matrix.output }}
+          retention-days: 1
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Prepare artifacts for release
+        run: |
+          mkdir release
+          find . -type f -path "*/condomngr-*" -exec cp {} release/ \;
+          find release/ -type f -name "condomngr-*" -exec sha256sum {} \; > release/checksums.txt
+          cd release && zip -r ../condomngr-${{ github.ref_name }}.zip .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            condomngr-${{ github.ref_name }}.zip
+          body: |
+            # Condo Manager ${{ github.ref_name }}
+            
+            ## Binaries
+            
+            - Linux (amd64, arm64)
+            - macOS (amd64, arm64)
+            - Windows (amd64)
+            
+            SHA256 checksums are included in the zip file.
+            
+            ## Installation
+            
+            1. Download the zip file
+            2. Extract the appropriate binary for your platform
+            3. Make it executable (Linux/macOS): `chmod +x condomngr-*`
+            4. Run the application: `./condomngr`
+          draft: false
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }} 
