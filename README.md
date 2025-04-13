@@ -262,15 +262,24 @@ make pre-commit
 ```
 
 Requirements for updating screenshots:
-- Node.js (v14 or later)
-- npm (automatically installs required dependencies)
+- Node.js (for README updates)
+- Go (to build and run the application)
 
 The screenshot process:
 1. Builds the application
 2. Runs the server in sample mode
-3. Captures screenshots of each page
+3. Captures screenshots of each page using a simple capture method
 4. Updates the README with the new screenshots
 5. Automatically shuts down the server
+
+Additional screenshot utilities:
+```bash
+# Generate debug screenshot placeholders (no server needed)
+make debug-screenshots
+
+# Remove all screenshots
+make clean-screenshots
+```
 
 <!-- SCREENSHOTS_START -->
 
