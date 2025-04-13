@@ -8,6 +8,11 @@ A simple application to manage condo expenses, residents, and payments using Go,
 - **Payment Tracking**: Record and track payments from residents
 - **Expense Management**: Track condo expenses by category
 - **Dashboard**: Overview of residents, payments, and expenses
+- **Search Functionality**: Quickly find residents, payments, and expenses with real-time search
+- **Data Validation**: Input validation for all forms to ensure data integrity
+- **Data Import/Export**: Export database to JSON and import from JSON files for backup and migration
+- **Report Generation**: Export payments and expenses reports to CSV
+- **Charts & Visualizations**: View payment trends and expense breakdown with interactive charts
 - **Single Binary**: All resources are embedded in a single Go binary
 
 ## Technologies Used
@@ -17,6 +22,7 @@ A simple application to manage condo expenses, residents, and payments using Go,
 - **Libraries**:
   - `github.com/mattn/go-sqlite3` - SQLite driver
   - `github.com/gorilla/mux` - HTTP router
+  - Chart.js - Data visualization
 
 ## Getting Started
 
@@ -55,6 +61,30 @@ This will:
 
 Note: Loading sample data will clear any existing data in the database.
 
+## Advanced Features
+
+### Database Export and Import
+
+The application allows exporting and importing the entire database:
+
+1. **Exporting**: Click the "Export Database" button on the Dashboard to download a JSON file with all data
+2. **Importing**: Click the "Import Database" button and select a previously exported JSON file to restore data
+
+### Report Generation
+
+Generate and download reports in CSV format:
+
+1. **Payments Report**: Click the "Export CSV" button on the Payments page
+2. **Expenses Report**: Click the "Export CSV" button on the Expenses page
+
+### Search and Filtering
+
+Use the search boxes at the top of each section to quickly find:
+
+- Residents by name, unit, contact, or email
+- Payments by description or resident
+- Expenses by description or category
+
 ## API Endpoints
 
 ### Residents
@@ -80,6 +110,22 @@ Note: Loading sample data will clear any existing data in the database.
 - `GET /api/expenses/{id}` - Get a specific expense
 - `PUT /api/expenses/{id}` - Update an expense
 - `DELETE /api/expenses/{id}` - Delete an expense
+
+### Data Import/Export
+
+- `GET /api/export` - Export database as JSON
+- `POST /api/import` - Import database from JSON
+
+### Search
+
+- `GET /api/search/residents?q={query}` - Search residents
+- `GET /api/search/payments?q={query}` - Search payments
+- `GET /api/search/expenses?q={query}` - Search expenses
+
+### Reports
+
+- `GET /api/reports/payments/export` - Export payments report as CSV
+- `GET /api/reports/expenses/export` - Export expenses report as CSV
 
 ## Data Structure
 

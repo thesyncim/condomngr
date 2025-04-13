@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -53,6 +55,14 @@ type Expense struct {
 	ExpenseDate string    `json:"expense_date"`
 	Category    string    `json:"category"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+// ExportData represents the entire database structure for export/import
+type ExportData struct {
+	Residents  []Resident `json:"residents"`
+	Payments   []Payment  `json:"payments"`
+	Expenses   []Expense  `json:"expenses"`
+	ExportDate string     `json:"export_date"`
 }
 
 func main() {
@@ -102,6 +112,19 @@ func main() {
 	api.HandleFunc("/expenses/{id:[0-9]+}", getExpense(db)).Methods("GET")
 	api.HandleFunc("/expenses/{id:[0-9]+}", updateExpense(db)).Methods("PUT")
 	api.HandleFunc("/expenses/{id:[0-9]+}", deleteExpense(db)).Methods("DELETE")
+
+	// Export and Import API endpoints
+	api.HandleFunc("/export", exportDatabase(db)).Methods("GET")
+	api.HandleFunc("/import", importDatabase(db)).Methods("POST")
+
+	// Search API endpoints
+	api.HandleFunc("/search/residents", searchResidents(db)).Methods("GET")
+	api.HandleFunc("/search/payments", searchPayments(db)).Methods("GET")
+	api.HandleFunc("/search/expenses", searchExpenses(db)).Methods("GET")
+
+	// Reports Export endpoints
+	api.HandleFunc("/reports/payments/export", exportPaymentsReport(db)).Methods("GET")
+	api.HandleFunc("/reports/expenses/export", exportExpensesReport(db)).Methods("GET")
 
 	// Serve static files
 	r.PathPrefix("/static/").Handler(http.FileServer(http.FS(content)))
@@ -216,6 +239,61 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Write(response)
 }
 
+// Validation function for Resident data
+func validateResident(r Resident) error {
+	if r.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if r.Unit == "" {
+		return fmt.Errorf("unit is required")
+	}
+	if r.Email != "" {
+		// Simple email validation
+		if !strings.Contains(r.Email, "@") || !strings.Contains(r.Email, ".") {
+			return fmt.Errorf("invalid email format")
+		}
+	}
+	return nil
+}
+
+// Validation function for Payment data
+func validatePayment(p Payment) error {
+	if p.ResidentID <= 0 {
+		return fmt.Errorf("resident is required")
+	}
+	if p.Amount <= 0 {
+		return fmt.Errorf("amount must be greater than zero")
+	}
+	if p.PaymentDate == "" {
+		return fmt.Errorf("payment date is required")
+	}
+	// Validate date format
+	_, err := time.Parse("2006-01-02", p.PaymentDate)
+	if err != nil {
+		return fmt.Errorf("invalid date format, must be YYYY-MM-DD")
+	}
+	return nil
+}
+
+// Validation function for Expense data
+func validateExpense(e Expense) error {
+	if e.Amount <= 0 {
+		return fmt.Errorf("amount must be greater than zero")
+	}
+	if e.Description == "" {
+		return fmt.Errorf("description is required")
+	}
+	if e.ExpenseDate == "" {
+		return fmt.Errorf("expense date is required")
+	}
+	// Validate date format
+	_, err := time.Parse("2006-01-02", e.ExpenseDate)
+	if err != nil {
+		return fmt.Errorf("invalid date format, must be YYYY-MM-DD")
+	}
+	return nil
+}
+
 // Handlers for resident endpoints
 func getResidents(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -249,6 +327,12 @@ func createResident(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
+
+		// Validate resident data
+		if err := validateResident(resident); err != nil {
+			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 
 		stmt, err := db.Prepare("INSERT INTO residents(name, unit, contact, email) VALUES(?, ?, ?, ?)")
 		if err != nil {
@@ -315,6 +399,12 @@ func updateResident(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
+
+		// Validate resident data
+		if err := validateResident(resident); err != nil {
+			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 
 		stmt, err := db.Prepare("UPDATE residents SET name = ?, unit = ?, contact = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
 		if err != nil {
@@ -399,6 +489,12 @@ func createPayment(db *sql.DB) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
+		// Validate payment data
+		if err := validatePayment(payment); err != nil {
+			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		stmt, err := db.Prepare("INSERT INTO payments(resident_id, amount, description, payment_date) VALUES(?, ?, ?, ?)")
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -468,6 +564,12 @@ func updatePayment(db *sql.DB) http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
+
+		// Validate payment data
+		if err := validatePayment(payment); err != nil {
+			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 
 		stmt, err := db.Prepare("UPDATE payments SET resident_id = ?, amount = ?, description = ?, payment_date = ? WHERE id = ?")
 		if err != nil {
@@ -547,6 +649,12 @@ func createExpense(db *sql.DB) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
+		// Validate expense data
+		if err := validateExpense(expense); err != nil {
+			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		stmt, err := db.Prepare("INSERT INTO expenses(amount, description, expense_date, category) VALUES(?, ?, ?, ?)")
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -613,6 +721,12 @@ func updateExpense(db *sql.DB) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
+		// Validate expense data
+		if err := validateExpense(expense); err != nil {
+			respondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		stmt, err := db.Prepare("UPDATE expenses SET amount = ?, description = ?, expense_date = ?, category = ? WHERE id = ?")
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -654,6 +768,578 @@ func deleteExpense(db *sql.DB) http.HandlerFunc {
 		}
 
 		respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
+	}
+}
+
+// Export database as JSON
+func exportDatabase(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		exportData := ExportData{
+			ExportDate: time.Now().Format(time.RFC3339),
+		}
+
+		// Get all residents
+		residents, err := getAllResidents(db)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error exporting residents: %v", err))
+			return
+		}
+		exportData.Residents = residents
+
+		// Get all payments
+		payments, err := getAllPayments(db)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error exporting payments: %v", err))
+			return
+		}
+		exportData.Payments = payments
+
+		// Get all expenses
+		expenses, err := getAllExpenses(db)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error exporting expenses: %v", err))
+			return
+		}
+		exportData.Expenses = expenses
+
+		// Set header for file download
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=condo_export_%s.json",
+			time.Now().Format("2006-01-02")))
+
+		// Write JSON response
+		if err := json.NewEncoder(w).Encode(exportData); err != nil {
+			respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Error encoding export data: %v", err))
+			return
+		}
+	}
+}
+
+// Import database from JSON
+func importDatabase(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Parse multipart form
+		if err := r.ParseMultipartForm(10 << 20); err != nil { // 10 MB limit
+			respondWithError(w, http.StatusBadRequest, "Unable to parse form")
+			return
+		}
+
+		// Get file from form
+		file, _, err := r.FormFile("importFile")
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Error retrieving import file")
+			return
+		}
+		defer file.Close()
+
+		// Read file content
+		fileBytes, err := io.ReadAll(file)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Error reading import file")
+			return
+		}
+
+		// Parse JSON data
+		var importData ExportData
+		if err := json.Unmarshal(fileBytes, &importData); err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid import file format")
+			return
+		}
+
+		// Begin transaction
+		tx, err := db.Begin()
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to begin transaction")
+			return
+		}
+		defer func() {
+			if err != nil {
+				tx.Rollback()
+				return
+			}
+		}()
+
+		// Clear existing data
+		if _, err = tx.Exec("DELETE FROM payments"); err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to clear existing payments")
+			return
+		}
+		if _, err = tx.Exec("DELETE FROM expenses"); err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to clear existing expenses")
+			return
+		}
+		if _, err = tx.Exec("DELETE FROM residents"); err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to clear existing residents")
+			return
+		}
+
+		// Insert residents
+		stmt, err := tx.Prepare("INSERT INTO residents(id, name, unit, contact, email) VALUES(?, ?, ?, ?, ?)")
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to prepare resident statement")
+			return
+		}
+		defer stmt.Close()
+
+		for _, resident := range importData.Residents {
+			_, err := stmt.Exec(resident.ID, resident.Name, resident.Unit, resident.Contact, resident.Email)
+			if err != nil {
+				respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to import resident: %v", err))
+				return
+			}
+		}
+
+		// Insert payments
+		stmt, err = tx.Prepare("INSERT INTO payments(id, resident_id, amount, description, payment_date) VALUES(?, ?, ?, ?, ?)")
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to prepare payment statement")
+			return
+		}
+		defer stmt.Close()
+
+		for _, payment := range importData.Payments {
+			_, err := stmt.Exec(payment.ID, payment.ResidentID, payment.Amount, payment.Description, payment.PaymentDate)
+			if err != nil {
+				respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to import payment: %v", err))
+				return
+			}
+		}
+
+		// Insert expenses
+		stmt, err = tx.Prepare("INSERT INTO expenses(id, amount, description, expense_date, category) VALUES(?, ?, ?, ?, ?)")
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to prepare expense statement")
+			return
+		}
+		defer stmt.Close()
+
+		for _, expense := range importData.Expenses {
+			_, err := stmt.Exec(expense.ID, expense.Amount, expense.Description, expense.ExpenseDate, expense.Category)
+			if err != nil {
+				respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to import expense: %v", err))
+				return
+			}
+		}
+
+		// Commit transaction
+		if err = tx.Commit(); err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to commit transaction")
+			return
+		}
+
+		respondWithJSON(w, http.StatusOK, map[string]string{
+			"message":            "Database import successful",
+			"imported_residents": strconv.Itoa(len(importData.Residents)),
+			"imported_payments":  strconv.Itoa(len(importData.Payments)),
+			"imported_expenses":  strconv.Itoa(len(importData.Expenses)),
+		})
+	}
+}
+
+// Helper function to get all residents
+func getAllResidents(db *sql.DB) ([]Resident, error) {
+	rows, err := db.Query("SELECT id, name, unit, contact, email, created_at, updated_at FROM residents")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	residents := []Resident{}
+	for rows.Next() {
+		var resident Resident
+		if err := rows.Scan(&resident.ID, &resident.Name, &resident.Unit, &resident.Contact, &resident.Email, &resident.CreatedAt, &resident.UpdatedAt); err != nil {
+			return nil, err
+		}
+		residents = append(residents, resident)
+	}
+
+	return residents, nil
+}
+
+// Helper function to get all payments
+func getAllPayments(db *sql.DB) ([]Payment, error) {
+	rows, err := db.Query("SELECT id, resident_id, amount, description, payment_date, created_at FROM payments")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	payments := []Payment{}
+	for rows.Next() {
+		var payment Payment
+		if err := rows.Scan(&payment.ID, &payment.ResidentID, &payment.Amount, &payment.Description, &payment.PaymentDate, &payment.CreatedAt); err != nil {
+			return nil, err
+		}
+		payments = append(payments, payment)
+	}
+
+	return payments, nil
+}
+
+// Helper function to get all expenses
+func getAllExpenses(db *sql.DB) ([]Expense, error) {
+	rows, err := db.Query("SELECT id, amount, description, expense_date, category, created_at FROM expenses")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	expenses := []Expense{}
+	for rows.Next() {
+		var expense Expense
+		if err := rows.Scan(&expense.ID, &expense.Amount, &expense.Description, &expense.ExpenseDate, &expense.Category, &expense.CreatedAt); err != nil {
+			return nil, err
+		}
+		expenses = append(expenses, expense)
+	}
+
+	return expenses, nil
+}
+
+// Search for residents
+func searchResidents(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query().Get("q")
+		if query == "" {
+			respondWithError(w, http.StatusBadRequest, "Search query is required")
+			return
+		}
+
+		// SQL query with LIKE for matching name, unit, or email
+		sqlQuery := `
+			SELECT id, name, unit, contact, email, created_at, updated_at 
+			FROM residents 
+			WHERE name LIKE ? OR unit LIKE ? OR email LIKE ? OR contact LIKE ?
+			ORDER BY name
+		`
+		searchPattern := "%" + query + "%"
+
+		rows, err := db.Query(sqlQuery, searchPattern, searchPattern, searchPattern, searchPattern)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer rows.Close()
+
+		residents := []Resident{}
+		for rows.Next() {
+			var resident Resident
+			if err := rows.Scan(&resident.ID, &resident.Name, &resident.Unit, &resident.Contact, &resident.Email, &resident.CreatedAt, &resident.UpdatedAt); err != nil {
+				respondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			residents = append(residents, resident)
+		}
+
+		respondWithJSON(w, http.StatusOK, residents)
+	}
+}
+
+// Search for payments
+func searchPayments(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query().Get("q")
+		residentId := r.URL.Query().Get("resident_id")
+		startDate := r.URL.Query().Get("start_date")
+		endDate := r.URL.Query().Get("end_date")
+
+		// Build WHERE clause dynamically
+		whereClause := ""
+		args := []interface{}{}
+
+		if query != "" {
+			whereClause += "p.description LIKE ? OR r.name LIKE ?"
+			searchPattern := "%" + query + "%"
+			args = append(args, searchPattern, searchPattern)
+		}
+
+		if residentId != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "p.resident_id = ?"
+			args = append(args, residentId)
+		}
+
+		if startDate != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "p.payment_date >= ?"
+			args = append(args, startDate)
+		}
+
+		if endDate != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "p.payment_date <= ?"
+			args = append(args, endDate)
+		}
+
+		// Build full SQL query
+		sqlQuery := `
+			SELECT p.id, p.resident_id, r.name, p.amount, p.description, p.payment_date, p.created_at 
+			FROM payments p
+			JOIN residents r ON p.resident_id = r.id
+		`
+
+		if whereClause != "" {
+			sqlQuery += " WHERE " + whereClause
+		}
+
+		sqlQuery += " ORDER BY p.payment_date DESC"
+
+		rows, err := db.Query(sqlQuery, args...)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer rows.Close()
+
+		payments := []Payment{}
+		for rows.Next() {
+			var payment Payment
+			if err := rows.Scan(&payment.ID, &payment.ResidentID, &payment.ResidentName, &payment.Amount, &payment.Description, &payment.PaymentDate, &payment.CreatedAt); err != nil {
+				respondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			payments = append(payments, payment)
+		}
+
+		respondWithJSON(w, http.StatusOK, payments)
+	}
+}
+
+// Search for expenses
+func searchExpenses(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query().Get("q")
+		category := r.URL.Query().Get("category")
+		startDate := r.URL.Query().Get("start_date")
+		endDate := r.URL.Query().Get("end_date")
+
+		// Build WHERE clause dynamically
+		whereClause := ""
+		args := []interface{}{}
+
+		if query != "" {
+			whereClause += "description LIKE ?"
+			searchPattern := "%" + query + "%"
+			args = append(args, searchPattern)
+		}
+
+		if category != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "category = ?"
+			args = append(args, category)
+		}
+
+		if startDate != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "expense_date >= ?"
+			args = append(args, startDate)
+		}
+
+		if endDate != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "expense_date <= ?"
+			args = append(args, endDate)
+		}
+
+		// Build full SQL query
+		sqlQuery := "SELECT id, amount, description, expense_date, category, created_at FROM expenses"
+
+		if whereClause != "" {
+			sqlQuery += " WHERE " + whereClause
+		}
+
+		sqlQuery += " ORDER BY expense_date DESC"
+
+		rows, err := db.Query(sqlQuery, args...)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer rows.Close()
+
+		expenses := []Expense{}
+		for rows.Next() {
+			var expense Expense
+			if err := rows.Scan(&expense.ID, &expense.Amount, &expense.Description, &expense.ExpenseDate, &expense.Category, &expense.CreatedAt); err != nil {
+				respondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			expenses = append(expenses, expense)
+		}
+
+		respondWithJSON(w, http.StatusOK, expenses)
+	}
+}
+
+// Export payments report as CSV
+func exportPaymentsReport(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get query parameters for filtering
+		residentId := r.URL.Query().Get("resident_id")
+		startDate := r.URL.Query().Get("start_date")
+		endDate := r.URL.Query().Get("end_date")
+
+		// Build WHERE clause dynamically
+		whereClause := ""
+		args := []interface{}{}
+
+		if residentId != "" {
+			whereClause += "p.resident_id = ?"
+			args = append(args, residentId)
+		}
+
+		if startDate != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "p.payment_date >= ?"
+			args = append(args, startDate)
+		}
+
+		if endDate != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "p.payment_date <= ?"
+			args = append(args, endDate)
+		}
+
+		// Build full SQL query
+		sqlQuery := `
+			SELECT p.id, r.name, r.unit, p.amount, p.description, p.payment_date
+			FROM payments p
+			JOIN residents r ON p.resident_id = r.id
+		`
+
+		if whereClause != "" {
+			sqlQuery += " WHERE " + whereClause
+		}
+
+		sqlQuery += " ORDER BY p.payment_date DESC"
+
+		rows, err := db.Query(sqlQuery, args...)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer rows.Close()
+
+		// Set headers for CSV download
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=payments_report_%s.csv",
+			time.Now().Format("2006-01-02")))
+
+		// Write CSV header
+		fmt.Fprintf(w, "ID,Resident,Unit,Amount,Description,Date\n")
+
+		// Write data rows
+		for rows.Next() {
+			var id int
+			var name, unit, description, date string
+			var amount float64
+
+			if err := rows.Scan(&id, &name, &unit, &amount, &description, &date); err != nil {
+				log.Printf("Error scanning payment row: %v", err)
+				continue
+			}
+
+			// Escape description field for CSV (handle commas and quotes)
+			if strings.Contains(description, ",") || strings.Contains(description, "\"") {
+				description = "\"" + strings.ReplaceAll(description, "\"", "\"\"") + "\""
+			}
+
+			fmt.Fprintf(w, "%d,%s,%s,%.2f,%s,%s\n", id, name, unit, amount, description, date)
+		}
+	}
+}
+
+// Export expenses report as CSV
+func exportExpensesReport(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get query parameters for filtering
+		category := r.URL.Query().Get("category")
+		startDate := r.URL.Query().Get("start_date")
+		endDate := r.URL.Query().Get("end_date")
+
+		// Build WHERE clause dynamically
+		whereClause := ""
+		args := []interface{}{}
+
+		if category != "" {
+			whereClause += "category = ?"
+			args = append(args, category)
+		}
+
+		if startDate != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "expense_date >= ?"
+			args = append(args, startDate)
+		}
+
+		if endDate != "" {
+			if whereClause != "" {
+				whereClause += " AND "
+			}
+			whereClause += "expense_date <= ?"
+			args = append(args, endDate)
+		}
+
+		// Build full SQL query
+		sqlQuery := "SELECT id, amount, description, expense_date, category FROM expenses"
+
+		if whereClause != "" {
+			sqlQuery += " WHERE " + whereClause
+		}
+
+		sqlQuery += " ORDER BY expense_date DESC"
+
+		rows, err := db.Query(sqlQuery, args...)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer rows.Close()
+
+		// Set headers for CSV download
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=expenses_report_%s.csv",
+			time.Now().Format("2006-01-02")))
+
+		// Write CSV header
+		fmt.Fprintf(w, "ID,Amount,Description,Date,Category\n")
+
+		// Write data rows
+		for rows.Next() {
+			var id int
+			var description, date, category string
+			var amount float64
+
+			if err := rows.Scan(&id, &amount, &description, &date, &category); err != nil {
+				log.Printf("Error scanning expense row: %v", err)
+				continue
+			}
+
+			// Escape description field for CSV (handle commas and quotes)
+			if strings.Contains(description, ",") || strings.Contains(description, "\"") {
+				description = "\"" + strings.ReplaceAll(description, "\"", "\"\"") + "\""
+			}
+
+			fmt.Fprintf(w, "%d,%.2f,%s,%s,%s\n", id, amount, description, date, category)
+		}
 	}
 }
 
