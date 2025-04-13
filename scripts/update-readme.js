@@ -7,7 +7,7 @@ const README_PATH = path.join(__dirname, '../README.md');
 const SCREENSHOTS_DIR = path.join(__dirname, '../docs/screenshots');
 const SCREENSHOTS_SECTION_START = '<!-- SCREENSHOTS_START -->';
 const SCREENSHOTS_SECTION_END = '<!-- SCREENSHOTS_END -->';
-const DEBUG_MODE = true; // Set to true to use placeholder content
+const DEBUG_MODE = false; // Set to false to use real screenshots
 
 // Screenshots configuration
 const SCREENSHOTS = [

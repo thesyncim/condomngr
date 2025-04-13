@@ -6,7 +6,13 @@ SERVER_PID=""
 TIMEOUT=10
 SERVER_PORT=8080
 SCREENSHOT_DELAY=3
-DEBUG_MODE=true # Set to true to skip Puppeteer and use debug mode
+DEBUG_MODE=false # Set to false to use real screenshots with Puppeteer
+
+# Check if a server is already running on the port
+if lsof -i:${SERVER_PORT} > /dev/null 2>&1; then
+  echo "Error: Port ${SERVER_PORT} is already in use. Stop any running server first."
+  exit 1
+fi
 
 # Function to cleanup on exit
 cleanup() {
