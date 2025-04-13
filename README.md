@@ -246,3 +246,65 @@ This project follows [Semantic Versioning](https://semver.org/):
 - **PATCH** version for backward-compatible bug fixes
 
 Pre-release versions (alpha, beta, rc) are marked as pre-releases in GitHub. 
+
+## Development
+
+### Updating Screenshots
+
+This project automatically maintains up-to-date screenshots in the README. You can update the screenshots manually or as part of the pre-commit process:
+
+```bash
+# Update screenshots manually
+make screenshots
+
+# Run pre-commit checks (includes updating screenshots)
+make pre-commit
+```
+
+Requirements for updating screenshots:
+- Node.js (v14 or later)
+- npm (automatically installs required dependencies)
+
+The screenshot process:
+1. Builds the application
+2. Runs the server in sample mode
+3. Captures screenshots of each page
+4. Updates the README with the new screenshots
+5. Automatically shuts down the server
+
+<!-- SCREENSHOTS_START -->
+
+## Screenshots
+
+### Dashboard
+
+Overview of residents, payments, and expenses with visual indicators.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Residents
+
+Manage condo residents with search and filtering capabilities.
+
+![Residents](docs/screenshots/residents.png)
+
+### Payments
+
+Track payments with detailed information and filtering.
+
+![Payments](docs/screenshots/payments.png)
+
+### Expenses
+
+Record and categorize expenses with search functionality.
+
+![Expenses](docs/screenshots/expenses.png)
+
+### Reports
+
+Visual reports showing payment trends and expense breakdowns.
+
+![Reports](docs/screenshots/reports.png)
+
+
+<!-- SCREENSHOTS_END --> 

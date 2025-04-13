@@ -1,0 +1,12 @@
+{
+  "name": "condomngr-docs",
+  "version": "1.0.0",
+  "description": "Documentation utilities for Condo Manager",
+  "private": true,
+  "scripts": {
+    "update-screenshots": "bash scripts/update-screenshots.sh"
+  },
+  "dependencies": {
+    "puppeteer": "^21.4.1"
+  }
+} 

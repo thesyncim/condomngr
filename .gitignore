@@ -1,11 +1,10 @@
 # Binary files
-condomngr
-**/bin/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+condomngr
 
 # Test binary, built with `go test -c`
 *.test
@@ -13,8 +12,9 @@ condomngr
 # Output of the go coverage tool
 *.out
 
-# Dependency directories (remove these if you want to check in your vendor directory)
+# Dependency directories
 vendor/
+node_modules/
 
 # Go workspace file
 go.work
@@ -32,6 +32,9 @@ Thumbs.db
 # Database files
 *.db
 condo.db
+
+# Screenshot process
+docs/screenshots/*.png
 
 # OS specific files
 .DS_Store?
