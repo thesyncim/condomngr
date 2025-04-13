@@ -1,0 +1,72 @@
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  skip-dirs:
+    - vendor
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck       # Detect unchecked errors
+    - gosimple       # Simplify code
+    - govet          # Examine Go source code for suspicious constructs
+    - ineffassign    # Detect ineffectual assignments
+    - staticcheck    # Find bugs and performance issues
+    - typecheck      # Type-check the package
+    - unused         # Find unused constants, variables, and functions
+    - gofmt          # Gofmt checks whether code was formatted with gofmt
+    - goimports      # Suggest fixes for imports
+    - misspell       # Find commonly misspelled English words
+    - revive         # Fast, configurable linter for Go
+    - whitespace     # Check for trailing whitespace
+    - gosec          # Inspects source code for security problems
+    - exportloopref  # Check for pointers to enclosing loop variables
+    - tparallel      # Detects inappropriate usage of t.Parallel() method in tests
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+        arguments:
+          - "checkPrivateReceivers"
+          - "disableStutteringCheck"
+  gosec:
+    excludes:
+      - G107  # HTTP requests with variable URLs
+      - G204  # Unsafe command execution
+  govet:
+    check-shadowing: true
+    enable-all: true
+    disable:
+      - fieldalignment
+  unused:
+    check-exported: false
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: "condomngr"
+  misspell:
+    locale: US
+  whitespace:
+    multi-if: false
+    multi-func: false
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true 

@@ -1,4 +1,4 @@
-.PHONY: build test clean release-major release-minor release-patch release-custom publish publish-latest release-major-push release-minor-push release-patch-push release-custom-push help
+.PHONY: build test clean release-major release-minor release-patch release-custom publish publish-latest release-major-push release-minor-push release-patch-push release-custom-push lint lint-fix pre-commit pre-deploy help
 
 VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 NEXT_MAJOR_VERSION ?= $(shell echo $(VERSION) | awk -F. '{ printf "v%d.0.0", $$1+1 }')
@@ -18,6 +18,24 @@ test:
 clean:
 	@echo "Cleaning up..."
 	@rm -f condomngr
+
+# Lint targets
+lint:
+	@echo "Running linter..."
+	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Installing..." && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.54.2)
+	@golangci-lint run ./...
+
+lint-fix:
+	@echo "Running linter with auto-fix..."
+	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Installing..." && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.54.2)
+	@golangci-lint run --fix ./...
+
+# Convenience targets for common workflows
+pre-commit: lint-fix test
+	@echo "Pre-commit checks completed successfully"
+
+pre-deploy: lint test build
+	@echo "Pre-deploy checks completed successfully"
 
 # Release targets
 release-major: TAG=$(NEXT_MAJOR_VERSION)
@@ -90,6 +108,10 @@ help:
 	@echo "  build               - Build the application"
 	@echo "  test                - Run tests"
 	@echo "  clean               - Remove build artifacts"
+	@echo "  lint                - Run linter to check for issues"
+	@echo "  lint-fix            - Run linter and automatically fix common issues"
+	@echo "  pre-commit          - Run lint-fix and tests (use before committing)"
+	@echo "  pre-deploy          - Run lint, tests, and build (use before deploying)"
 	@echo ""
 	@echo "  # Two-step release process:"
 	@echo "  release-major       - Create a new major release tag (vX.0.0)"
