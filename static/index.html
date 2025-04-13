@@ -848,19 +848,58 @@
             
             // Reports Charts function
             function loadReportCharts() {
+                // Check if running in headless mode for screenshots (Chrome headless sets userAgent)
+                const isHeadless = navigator.userAgent.includes("HeadlessChrome");
+                
                 // Get the date range values that were set by setDefaultDateFilters
                 const fromDate = document.getElementById('reportDateFrom').value;
                 const toDate = document.getElementById('reportDateTo').value;
                 
-                // First update the charts with the date range
-                loadPaymentChartWithDateRange(fromDate, toDate);
-                loadExpenseChartWithDateRange(fromDate, toDate);
+                if (isHeadless) {
+                    // In headless/screenshot mode, use simpler static content to avoid TensorFlow issues
+                    renderStaticReportContent();
+                } else {
+                    // Normal mode with interactive charts
+                    // First update the charts with the date range
+                    loadPaymentChartWithDateRange(fromDate, toDate);
+                    loadExpenseChartWithDateRange(fromDate, toDate);
+                    
+                    // Then automatically generate the trends analysis (monthly comparison)
+                    showTrendsAnalysis();
+                    
+                    // Clear the projections chart with an informative message
+                    document.getElementById('cashFlowChart').innerHTML = 'Click "Show Projections" to generate cash flow projections';
+                }
+            }
+            
+            // Function to render static content for headless/screenshot mode
+            function renderStaticReportContent() {
+                const chartContainers = ['paymentChart', 'expenseChart', 'cashFlowChart', 'monthlyComparisonChart'];
                 
-                // Then automatically generate the trends analysis (monthly comparison)
-                showTrendsAnalysis();
-                
-                // Clear the projections chart with an informative message
-                document.getElementById('cashFlowChart').innerHTML = 'Click "Show Projections" to generate cash flow projections';
+                chartContainers.forEach(containerId => {
+                    const container = document.getElementById(containerId);
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="height: 250px; display: flex; justify-content: center; align-items: center; border: 1px dashed #ccc; border-radius: 4px;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 24px; margin-bottom: 10px;">📊</div>
+                                    <div>${getChartTitle(containerId)}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            // Helper to get descriptive chart titles
+            function getChartTitle(containerId) {
+                switch(containerId) {
+                    case 'paymentChart': return 'Monthly Payment Trends';
+                    case 'expenseChart': return 'Expense Breakdown by Category';
+                    case 'cashFlowChart': return 'Cash Flow Projections (6 months)';
+                    case 'monthlyComparisonChart': return 'Monthly Income/Expense Comparison';
+                    default: return 'Chart Data';
+                }
             }
             
             function loadPaymentChart() {
