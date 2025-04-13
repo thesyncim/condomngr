@@ -1,4 +1,4 @@
-.PHONY: build test clean release-major release-minor release-patch release-custom publish publish-latest release-major-push release-minor-push release-patch-push release-custom-push lint lint-fix pre-commit pre-deploy screenshots debug-screenshots clean-screenshots help
+.PHONY: build test clean release-major release-minor release-patch release-custom publish publish-latest release-major-push release-minor-push release-patch-push release-custom-push lint lint-fix pre-commit pre-deploy help
 
 VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 NEXT_MAJOR_VERSION ?= $(shell echo $(VERSION) | awk -F. '{ printf "v%d.0.0", $$1+1 }')
@@ -36,24 +36,11 @@ lint-fix:
 	fi
 	@$(shell go env GOPATH)/bin/golangci-lint run --fix ./...
 
-# Screenshot targets
-screenshots:
-	@echo "Updating screenshots..."
-	@bash scripts/update-screenshots.sh
-
-debug-screenshots:
-	@echo "Updating screenshots in debug mode..."
-	@node scripts/update-readme.js
-
-clean-screenshots:
-	@echo "Cleaning screenshots..."
-	@rm -f screenshots/*.png
-
 # Convenience targets for common workflows
-pre-commit: lint-fix test debug-screenshots
+pre-commit: lint-fix test
 	@echo "Pre-commit checks completed successfully"
 
-pre-deploy: lint test screenshots build
+pre-deploy: lint test build
 	@echo "Pre-deploy checks completed successfully"
 
 # Release targets
@@ -129,11 +116,8 @@ help:
 	@echo "  clean               - Remove build artifacts"
 	@echo "  lint                - Run linter to check for issues"
 	@echo "  lint-fix            - Run linter and automatically fix common issues"
-	@echo "  screenshots         - Update screenshots in README.md"
-	@echo "  debug-screenshots   - Update screenshots in debug mode (no browser needed)"
-	@echo "  clean-screenshots   - Remove all screenshots"
-	@echo "  pre-commit          - Run lint-fix, tests, and update screenshots (use before committing)"
-	@echo "  pre-deploy          - Run lint, tests, update screenshots, and build (use before deploying)"
+	@echo "  pre-commit          - Run lint-fix and tests (use before committing)"
+	@echo "  pre-deploy          - Run lint, tests, and build (use before deploying)"
 	@echo ""
 	@echo "  # Two-step release process:"
 	@echo "  release-major       - Create a new major release tag (vX.0.0)"

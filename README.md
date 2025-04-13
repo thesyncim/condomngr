@@ -286,34 +286,24 @@ Pre-release versions (alpha, beta, rc) are marked as pre-releases in GitHub.
 
 ## Development
 
-### Updating Screenshots
+### Code Style and Linting
 
-This project automatically maintains up-to-date screenshots in the README. You can update the screenshots manually or as part of the pre-commit process:
+This project uses `golangci-lint` for linting and code style enforcement. 
 
 ```bash
-# Update screenshots manually
-make screenshots
+# Run linter
+make lint
 
-# Run pre-commit checks (includes updating screenshots)
-make pre-commit
+# Run linter with auto-fix
+make lint-fix
 ```
 
-Requirements for updating screenshots:
-- Node.js (for README updates)
-- Go (to build and run the application)
+The configuration is defined in `.golangci.yml`.
 
-The screenshot process:
-1. Builds the application
-2. Runs the server in sample mode
-3. Captures screenshots of each page using a simple capture method
-4. Updates the README with the new screenshots
-5. Automatically shuts down the server
+### Pre-commit Hooks
 
-Additional screenshot utilities:
+It's recommended to use the pre-commit hooks to automatically lint and test before committing changes:
+
 ```bash
-# Generate debug screenshot placeholders (no server needed)
-make debug-screenshots
-
-# Remove all screenshots
-make clean-screenshots
+make pre-commit
 ``` 

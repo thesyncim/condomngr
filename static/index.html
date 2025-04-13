@@ -848,45 +848,77 @@
             
             // Reports Charts function
             function loadReportCharts() {
-                // Check if running in headless mode for screenshots (Chrome headless sets userAgent)
-                const isHeadless = navigator.userAgent.includes("HeadlessChrome");
+                // For headless browsers, use static content
+                if (isHeadless) {
+                    console.log("Headless browser detected, using static content for reports");
+                    renderStaticReportContent();
+                    return;
+                }
                 
                 // Get the date range values that were set by setDefaultDateFilters
                 const fromDate = document.getElementById('reportDateFrom').value;
                 const toDate = document.getElementById('reportDateTo').value;
                 
-                if (isHeadless) {
-                    // In headless/screenshot mode, use simpler static content to avoid TensorFlow issues
-                    renderStaticReportContent();
-                } else {
-                    // Normal mode with interactive charts
-                    // First update the charts with the date range
-                    loadPaymentChartWithDateRange(fromDate, toDate);
-                    loadExpenseChartWithDateRange(fromDate, toDate);
-                    
-                    // Then automatically generate both trends and projections
-                    showTrendsAnalysis();
-                    showProjections();
-                }
+                // Update the charts with the date range
+                loadPaymentChartWithDateRange(fromDate, toDate);
+                loadExpenseChartWithDateRange(fromDate, toDate);
+                
+                // Then automatically generate both trends and projections
+                showTrendsAnalysis();
+                showProjections();
             }
             
             // Function to render static content for headless/screenshot mode
             function renderStaticReportContent() {
-                const chartContainers = ['paymentChart', 'expenseChart', 'cashFlowChart', 'monthlyComparisonChart'];
+                console.log("Rendering static content for headless browsers");
                 
-                chartContainers.forEach(containerId => {
-                    const container = document.getElementById(containerId);
-                    if (container) {
-                        container.innerHTML = `
-                            <div style="height: 250px; display: flex; justify-content: center; align-items: center; border: 1px dashed #ccc; border-radius: 4px;">
-                                <div style="text-align: center;">
-                                    <div style="font-size: 24px; margin-bottom: 10px;">📊</div>
-                                    <div>${getChartTitle(containerId)}</div>
-                                </div>
-                            </div>
-                        `;
-                    }
-                });
+                // Render static payment chart
+                const paymentChart = document.getElementById('paymentChart');
+                paymentChart.innerHTML = `
+                    <div style="height: 250px; display: flex; justify-content: center; align-items: center; border: 1px dashed #ccc; border-radius: 4px; background: #f8f9fa;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 10px;">📊</div>
+                            <div style="font-weight: bold; margin-bottom: 5px;">Monthly Payment Trends</div>
+                            <div style="color: #6c757d; font-size: 14px;">Static visualization for screenshot mode</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Render static expense chart
+                const expenseChart = document.getElementById('expenseChart');
+                expenseChart.innerHTML = `
+                    <div style="height: 250px; display: flex; justify-content: center; align-items: center; border: 1px dashed #ccc; border-radius: 4px; background: #f8f9fa;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 10px;">🍩</div>
+                            <div style="font-weight: bold; margin-bottom: 5px;">Expense Breakdown by Category</div>
+                            <div style="color: #6c757d; font-size: 14px;">Static visualization for screenshot mode</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Render static cash flow chart
+                const cashFlowChart = document.getElementById('cashFlowChart');
+                cashFlowChart.innerHTML = `
+                    <div style="height: 250px; display: flex; justify-content: center; align-items: center; border: 1px dashed #ccc; border-radius: 4px; background: #f8f9fa;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 10px;">📈</div>
+                            <div style="font-weight: bold; margin-bottom: 5px;">Cash Flow Projections (6 months)</div>
+                            <div style="color: #6c757d; font-size: 14px;">Static visualization for screenshot mode</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Render static monthly comparison chart
+                const monthlyComparisonChart = document.getElementById('monthlyComparisonChart');
+                monthlyComparisonChart.innerHTML = `
+                    <div style="height: 250px; display: flex; justify-content: center; align-items: center; border: 1px dashed #ccc; border-radius: 4px; background: #f8f9fa;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 10px;">📊</div>
+                            <div style="font-weight: bold; margin-bottom: 5px;">Monthly Income/Expense Comparison</div>
+                            <div style="color: #6c757d; font-size: 14px;">Static visualization for screenshot mode</div>
+                        </div>
+                    </div>
+                `;
             }
             
             // Helper to get descriptive chart titles
