@@ -22,13 +22,19 @@ clean:
 # Lint targets
 lint:
 	@echo "Running linter..."
-	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Installing..." && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.54.2)
-	@golangci-lint run ./...
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "golangci-lint not found. Installing..."; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.54.2; \
+	fi
+	@$(shell go env GOPATH)/bin/golangci-lint run ./...
 
 lint-fix:
 	@echo "Running linter with auto-fix..."
-	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Installing..." && curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.54.2)
-	@golangci-lint run --fix ./...
+	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+		echo "golangci-lint not found. Installing..."; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.54.2; \
+	fi
+	@$(shell go env GOPATH)/bin/golangci-lint run --fix ./...
 
 # Convenience targets for common workflows
 pre-commit: lint-fix test
