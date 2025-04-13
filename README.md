@@ -50,6 +50,7 @@ Visual reports showing payment trends and expense breakdowns.
 
 ![Reports](screenshots/reports.png)
 
+
 <!-- SCREENSHOTS_END -->
 
 ## Technologies Used
