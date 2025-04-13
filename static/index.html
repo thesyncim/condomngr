@@ -848,8 +848,19 @@
             
             // Reports Charts function
             function loadReportCharts() {
-                loadPaymentChart();
-                loadExpenseChart();
+                // Get the date range values that were set by setDefaultDateFilters
+                const fromDate = document.getElementById('reportDateFrom').value;
+                const toDate = document.getElementById('reportDateTo').value;
+                
+                // First update the charts with the date range
+                loadPaymentChartWithDateRange(fromDate, toDate);
+                loadExpenseChartWithDateRange(fromDate, toDate);
+                
+                // Then automatically generate the trends analysis (monthly comparison)
+                showTrendsAnalysis();
+                
+                // Clear the projections chart with an informative message
+                document.getElementById('cashFlowChart').innerHTML = 'Click "Show Projections" to generate cash flow projections';
             }
             
             function loadPaymentChart() {
@@ -2350,6 +2361,7 @@
                 const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
                 const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
                 
+                // For payment and expense filters - current month
                 const fromDateStr = firstDayOfMonth.toISOString().split('T')[0];
                 const toDateStr = lastDayOfMonth.toISOString().split('T')[0];
                 
