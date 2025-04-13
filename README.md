@@ -14,11 +14,12 @@ A simple application to manage condo expenses, residents, and payments using Go,
 - **Report Generation**: Export payments and expenses reports to CSV
 - **Charts & Visualizations**: View payment trends and expense breakdown with interactive charts
 - **Single Binary**: All resources are embedded in a single Go binary
+- **Modern UI**: Sleek, responsive design with intuitive navigation and visual indicators
 
 ## Technologies Used
 
 - **Backend**: Go with SQLite database
-- **Frontend**: HTML, CSS, JavaScript, Bootstrap 5
+- **Frontend**: HTML, CSS, JavaScript, Bootstrap 5, Font Awesome 6
 - **Libraries**:
   - `github.com/mattn/go-sqlite3` - SQLite driver
   - `github.com/gorilla/mux` - HTTP router
