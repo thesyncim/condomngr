@@ -1,0 +1,10 @@
+  - name: Build binary
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      CGO_ENABLED: 0 # Disable CGO for static binaries
+    run: |
+      BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      COMMIT_HASH=$(git rev-parse --short HEAD)
+      VERSION=${GITHUB_REF_NAME#v}
+      go build -v -ldflags="-X 'main.Version=${VERSION}' -X 'main.BuildTime=${BUILD_TIME}' -X 'main.CommitHash=${COMMIT_HASH}'" -o ${{ matrix.output }} . 

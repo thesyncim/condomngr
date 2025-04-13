@@ -169,3 +169,43 @@ Use the search boxes at the top of each section to quickly find:
 ## License
 
 MIT 
+
+## Releasing and CI/CD
+
+This project uses GitHub Actions for continuous integration and delivery.
+
+### CI Workflow
+
+The CI workflow runs on every push to the main branch and on all pull requests. It:
+
+1. Runs all tests
+2. Performs code linting with golangci-lint
+3. Verifies that the code builds successfully on multiple platforms
+
+### Release Process
+
+To create a new release:
+
+1. Create and push a new tag following semantic versioning (e.g., `v1.0.0`):
+   ```bash
+   git tag -a v1.0.0 -m "Release v1.0.0"
+   git push origin v1.0.0
+   ```
+
+2. The release workflow will automatically:
+   - Build binaries for multiple platforms:
+     - Linux (amd64, arm64)
+     - macOS (amd64, arm64)
+     - Windows (amd64)
+   - Create a GitHub release with all binaries
+   - Generate SHA256 checksums for verification
+
+### Versioning
+
+This project follows [Semantic Versioning](https://semver.org/):
+
+- **MAJOR** version for incompatible API changes
+- **MINOR** version for backward-compatible functionality additions
+- **PATCH** version for backward-compatible bug fixes
+
+Pre-release versions (alpha, beta, rc) are marked as pre-releases in GitHub. 

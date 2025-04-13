@@ -22,6 +22,13 @@ import (
 //go:embed static
 var content embed.FS
 
+// Version information - set during build
+var (
+	Version    = "dev"
+	BuildTime  = ""
+	CommitHash = ""
+)
+
 const (
 	dbFile = "condo.db"
 	port   = "8080"
@@ -68,7 +75,20 @@ type ExportData struct {
 func main() {
 	// Parse command-line flags
 	loadSampleData := flag.Bool("sample", false, "Load sample data into the database")
+	showVersion := flag.Bool("version", false, "Show version information")
 	flag.Parse()
+
+	// Show version and exit if requested
+	if *showVersion {
+		fmt.Printf("Condo Manager %s\n", Version)
+		if BuildTime != "" {
+			fmt.Printf("Build Time: %s\n", BuildTime)
+		}
+		if CommitHash != "" {
+			fmt.Printf("Commit: %s\n", CommitHash)
+		}
+		return
+	}
 
 	// Initialize database
 	db, err := initDB()
