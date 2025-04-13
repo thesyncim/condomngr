@@ -706,11 +706,26 @@
                     e.preventDefault();
                     const sectionId = this.getAttribute('href').substring(1);
                     showSection(sectionId);
+                    // Update URL hash without triggering the hashchange event
+                    history.pushState(null, null, this.getAttribute('href'));
                 });
             });
             
-            // Show dashboard by default
-            showSection('dashboard');
+            // Handle direct navigation via URL hash
+            function handleHashChange() {
+                const hash = window.location.hash.substring(1);
+                if (hash && document.getElementById(hash + '-section')) {
+                    showSection(hash);
+                } else {
+                    showSection('dashboard');
+                }
+            }
+            
+            // Listen for hash changes
+            window.addEventListener('hashchange', handleHashChange);
+            
+            // Initial load based on hash
+            handleHashChange();
             
             // Modal initialization
             const residentModal = new bootstrap.Modal(document.getElementById('residentModal'));

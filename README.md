@@ -35,7 +35,7 @@ A simple application to manage condo expenses, residents, and payments using Go,
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/condomngr.git
+git clone https://github.com/thesyncim/condomngr.git
 cd condomngr
 
 # Build the application
