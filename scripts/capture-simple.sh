@@ -1,26 +1,33 @@
 #!/bin/bash
 set -e
 
-# Create screenshot directory
-SCREENSHOT_DIR="docs/screenshots"
+# Create screenshots directory if it doesn't exist
+SCREENSHOT_DIR="screenshots"
 mkdir -p "$SCREENSHOT_DIR"
 
-# Set up the paths
+# Server URL
 SERVER_URL="http://localhost:8080"
 
 # Function to take a screenshot
 take_screenshot() {
-  local page="$1"
-  local output="$2"
-  local url="${SERVER_URL}/${page}"
-  
-  echo "Capturing screenshot of $url to $output"
-  
-  # For Mac: Use screencapture or alternative (we'll echo a placeholder for now)
-  echo "DEBUG: Screenshot of $page page - $(date)" > "$output"
-  
-  # For demonstration, we're just adding placeholder text to the image files
-  echo "[This would be an actual screenshot from $url]" >> "$output"
+    local path=$1
+    local output=$2
+    
+    echo "Taking screenshot of $path..."
+    # Try to detect available browser
+    if command -v "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" > /dev/null 2>&1; then
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --window-size=1280,800 --virtual-time-budget=5000 --screenshot="$output" "${SERVER_URL}$path"
+    elif command -v "/Applications/Chromium.app/Contents/MacOS/Chromium" > /dev/null 2>&1; then
+        "/Applications/Chromium.app/Contents/MacOS/Chromium" --headless --disable-gpu --window-size=1280,800 --virtual-time-budget=5000 --screenshot="$output" "${SERVER_URL}$path"
+    elif command -v "google-chrome" > /dev/null 2>&1; then
+        google-chrome --headless --disable-gpu --window-size=1280,800 --virtual-time-budget=5000 --screenshot="$output" "${SERVER_URL}$path"
+    elif command -v "chromium-browser" > /dev/null 2>&1; then
+        chromium-browser --headless --disable-gpu --window-size=1280,800 --virtual-time-budget=5000 --screenshot="$output" "${SERVER_URL}$path"
+    else
+        echo "Error: No compatible browser found for taking screenshots."
+        exit 1
+    fi
+    echo "Screenshot saved to $output"
 }
 
 # Take screenshots of all pages
