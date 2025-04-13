@@ -8,25 +8,32 @@ SERVER_PORT=8080
 SCREENSHOT_DELAY=3
 DEBUG_MODE=false # Set to false to use real screenshots with Puppeteer
 
-# Check if a server is already running on the port
-if lsof -i:${SERVER_PORT} > /dev/null 2>&1; then
-  echo "Error: Port ${SERVER_PORT} is already in use. Stop any running server first."
-  exit 1
-fi
+# Stop any existing server processes on port 8080
+stop_existing_servers() {
+  local pid=$(lsof -t -i:${SERVER_PORT} 2>/dev/null)
+  if [ -n "$pid" ]; then
+    echo "Stopping existing process on port ${SERVER_PORT} (PID: $pid)..."
+    kill -9 $pid 2>/dev/null || true
+    sleep 1
+  fi
+}
+
+# Always stop existing servers before starting
+stop_existing_servers
 
 # Function to cleanup on exit
 cleanup() {
   echo "Cleaning up..."
   if [ -n "$SERVER_PID" ]; then
     echo "Stopping server (PID: $SERVER_PID)..."
-    kill $SERVER_PID || true
+    kill -9 $SERVER_PID 2>/dev/null || true
     wait $SERVER_PID 2>/dev/null || true
   fi
   echo "Done"
 }
 
 # Set up cleanup trap
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 # Ensure screenshots directory exists
 mkdir -p docs/screenshots
@@ -57,6 +64,12 @@ else
   echo "Building application..."
   go build -o condomngr .
 
+  # Double-check port is available
+  if lsof -i:${SERVER_PORT} > /dev/null 2>&1; then
+    echo "Error: Port ${SERVER_PORT} is still in use after cleanup. Please stop the process manually."
+    exit 1
+  fi
+
   # Start the server in sample mode
   echo "Starting server in sample mode..."
   ./condomngr -sample &
@@ -68,6 +81,12 @@ else
     if curl -s http://localhost:$SERVER_PORT &>/dev/null; then
       echo "Server is up and running"
       break
+    fi
+    
+    # Check if process is still running
+    if ! ps -p $SERVER_PID > /dev/null; then
+      echo "Error: Server process died. Check logs for details."
+      exit 1
     fi
     
     if [ $i -eq $TIMEOUT ]; then
@@ -85,7 +104,10 @@ else
 
   # Capture screenshots
   echo "Capturing screenshots..."
-  node scripts/capture-screenshots.js
+  node scripts/capture-screenshots.js || {
+    echo "Error: Failed to capture screenshots"
+    exit 1
+  }
 fi
 
 # Update README
