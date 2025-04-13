@@ -16,6 +16,42 @@ A simple application to manage condo expenses, residents, and payments using Go,
 - **Single Binary**: All resources are embedded in a single Go binary
 - **Modern UI**: Sleek, responsive design with intuitive navigation and visual indicators
 
+<!-- SCREENSHOTS_START -->
+
+## Screenshots
+
+### Dashboard
+
+Overview of residents, payments, and expenses with visual indicators.
+
+![Dashboard](screenshots/dashboard.png)
+
+### Residents
+
+Manage condo residents with search and filtering capabilities.
+
+![Residents](screenshots/residents.png)
+
+### Payments
+
+Track payments with detailed information and filtering.
+
+![Payments](screenshots/payments.png)
+
+### Expenses
+
+Record and categorize expenses with search functionality.
+
+![Expenses](screenshots/expenses.png)
+
+### Reports
+
+Visual reports showing payment trends and expense breakdowns.
+
+![Reports](screenshots/reports.png)
+
+<!-- SCREENSHOTS_END -->
+
 ## Technologies Used
 
 - **Backend**: Go with SQLite database
@@ -279,41 +315,4 @@ make debug-screenshots
 
 # Remove all screenshots
 make clean-screenshots
-```
-
-<!-- SCREENSHOTS_START -->
-
-## Screenshots
-
-### Dashboard
-
-Overview of residents, payments, and expenses with visual indicators.
-
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Residents
-
-Manage condo residents with search and filtering capabilities.
-
-![Residents](docs/screenshots/residents.png)
-
-### Payments
-
-Track payments with detailed information and filtering.
-
-![Payments](docs/screenshots/payments.png)
-
-### Expenses
-
-Record and categorize expenses with search functionality.
-
-![Expenses](docs/screenshots/expenses.png)
-
-### Reports
-
-Visual reports showing payment trends and expense breakdowns.
-
-![Reports](docs/screenshots/reports.png)
-
-
-<!-- SCREENSHOTS_END --> 
+``` 

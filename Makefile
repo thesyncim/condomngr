@@ -47,7 +47,7 @@ debug-screenshots:
 
 clean-screenshots:
 	@echo "Cleaning screenshots..."
-	@rm -f docs/screenshots/*.png
+	@rm -f screenshots/*.png
 
 # Convenience targets for common workflows
 pre-commit: lint-fix test debug-screenshots

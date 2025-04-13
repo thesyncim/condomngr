@@ -36,14 +36,14 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Ensure screenshots directory exists
-mkdir -p docs/screenshots
+mkdir -p screenshots
 
 # Create placeholder images (debug mode)
 create_placeholders() {
   echo "Creating placeholder screenshots..."
   for page in "dashboard" "residents" "payments" "expenses" "reports"; do
     echo "Creating placeholder for $page"
-    echo "DEBUG MODE: Screenshot of $page page - $(date)" > "docs/screenshots/$page.png"
+    echo "DEBUG MODE: Screenshot of $page page - $(date)" > "screenshots/$page.png"
   done
 }
 

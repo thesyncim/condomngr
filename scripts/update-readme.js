@@ -4,7 +4,7 @@ const path = require('path');
 
 // Configuration
 const README_PATH = path.join(__dirname, '../README.md');
-const SCREENSHOTS_DIR = path.join(__dirname, '../docs/screenshots');
+const SCREENSHOTS_DIR = path.join(__dirname, '../screenshots');
 const SCREENSHOTS_SECTION_START = '<!-- SCREENSHOTS_START -->';
 const SCREENSHOTS_SECTION_END = '<!-- SCREENSHOTS_END -->';
 const DEBUG_MODE = false; // Set to false to use real screenshots
@@ -73,7 +73,7 @@ function updateReadme() {
   let screenshotsContent = `\n## Screenshots\n\n`;
   
   for (const screenshot of SCREENSHOTS) {
-    const imagePath = `docs/screenshots/${screenshot.filename}`;
+    const imagePath = `screenshots/${screenshot.filename}`;
     
     // Check if screenshot exists
     const fullImagePath = path.join(__dirname, '..', imagePath);

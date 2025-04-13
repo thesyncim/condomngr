@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const SCREENSHOTS_DIR = path.join(__dirname, '../docs/screenshots');
+const SCREENSHOTS_DIR = path.join(__dirname, '../screenshots');
 const BASE_URL = 'http://localhost:8080';
 const WAIT_TIME = 1000; // Time to wait for page to load properly in ms
 
